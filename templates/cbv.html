@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}{{ name }} · ACADES CBV Dashboard{% endblock %}
+{% block page_title %}
+<h1><a href="/cbvs" class="muted" style="font-weight:400">CBVs</a> / {{ name }}</h1>
+{% endblock %}
+{% block content %}
+
+<div class="grid kpis">
+  <div class="card kpi accent">
+    <div class="label">Encounters (all time)</div>
+    <div class="value">{{ total }}</div>
+    <div class="foot">across {{ active_months }} month{{ 's' if active_months != 1 }}</div>
+  </div>
+  <div class="card kpi">
+    <div class="label">Reports submitted</div>
+    <div class="value">{{ active_months }}</div>
+    <div class="foot">one per month with encounters · {{ total_submissions }} form entries · {{ reported_total }} self-reported</div>
+  </div>
+  <div class="card kpi">
+    <div class="label">Satisfaction</div>
+    <div class="value">{{ sat.yes }}<span style="font-size:15px" class="muted"> / {{ sat.yes + sat.no }}</span></div>
+    <div class="foot">farmers said satisfied ({{ sat.no }} not)</div>
+  </div>
+  <div class="card kpi amber">
+    <div class="label">Bundle status</div>
+    <div class="value" style="font-size:17px;padding-top:6px">
+      {% if status %}
+        {% if status.status == 'forced' %}Forced in
+        {% elif status.status == 'eligible' %}Recommended
+        {% elif status.status == 'received' %}Received {{ month_label(month) }}
+        {% elif status.status == 'excluded' %}Excluded
+        {% else %}No report{% endif %}
+      {% else %}—{% endif %}
+    </div>
+    <div class="foot">{% if status %}{{ status.reasons[-1] }}{% endif %}</div>
+  </div>
+</div>
+
+<div class="grid cols-2">
+  <div class="card">
+    <h2>Encounters per month</h2>
+    <div class="sub">{{ district or 'District unknown' }}{% if group %} · {{ group }}{% endif %}</div>
+    <div class="chart-box short"><div id="cbvChart"></div></div>
+  </div>
+
+  <div class="card">
+    <h2>Encounters and bundles by month</h2>
+    <div class="sub">Encounter rows are compared with the bundle records for the same month.</div>
+    {% if bundle_activity %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Month</th><th class="num">Encounters</th><th>Bundle received that month</th></tr></thead>
+      <tbody>
+      {% for activity in bundle_activity %}
+        <tr>
+          <td>{{ month_label(activity.month) }}</td>
+          <td class="num"><b>{{ activity.encounters }}</b></td>
+          <td>
+            {% if activity.bundles %}
+              {% for b in activity.bundles %}
+                <span class="badge green">Yes</span>
+                <span class="muted tiny">{{ b.received_date or 'date not listed' }} · {{ b.source_file }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="badge gray">No record</span>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<div class="empty">No encounter or bundle records found for this CBV.</div>{% endif %}
+  </div>
+</div>
+
+<div class="card" style="margin-top:14px">
+  <h2>Feedback from farmers</h2>
+  <div class="sub">comments and questions recorded by {{ name }}</div>
+  {% if feedback %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>Type</th><th>Month</th><th>Text</th></tr></thead>
+    <tbody>
+    {% for f in feedback %}
+      <tr>
+        <td><span class="badge {{ 'green' if f.kind == 'Farmer comment' else 'blue' }}">{{ f.kind }}</span></td>
+        <td class="muted">{{ month_label(f.month) }}</td>
+        <td>{{ f.text }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}<div class="empty">No feedback recorded.</div>{% endif %}
+</div>
+
+<div class="grid cols-2b" style="margin-top:14px">
+  <div class="card">
+    <h2>Encounter log <span class="badge gray">{{ enc_rows|length }} shown</span></h2>
+    <div class="sub">latest first</div>
+    <div class="table-wrap" style="max-height:420px;overflow:auto"><table>
+      <thead><tr><th>Date</th><th>Farmer</th><th>Group</th><th>Satisfied</th><th>Follow up</th></tr></thead>
+      <tbody>
+      {% for e in enc_rows %}
+        <tr>
+          <td class="muted">{{ e.date or 'no date' }}</td>
+          <td>{{ e.farmer or '—' }}</td>
+          <td class="muted">{{ e.group or '—' }}</td>
+          <td>{% if e.satisfied %}<span class="badge {{ 'green' if e.satisfied|lower in ('eya','yes') else 'red' }}">{{ e.satisfied }}</span>{% endif %}</td>
+          <td>{% if e.follow_up %}<span class="badge {{ 'green' if e.follow_up|lower in ('eya','yes') else 'gray' }}">{{ e.follow_up }}</span>{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5"><div class="empty">No dated encounters.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h2>Form entries <span class="badge gray">{{ sub_rows|length }}</span></h2>
+    <div class="sub">Submissions tab — self-reported reach and questions</div>
+    <div class="table-wrap" style="max-height:420px;overflow:auto"><table>
+      <thead><tr><th>Date</th><th class="num">Reached</th><th>Questions farmers asked</th></tr></thead>
+      <tbody>
+      {% for s in sub_rows %}
+        <tr>
+          <td class="muted">{{ s.date or (s.timestamp[:10] if s.timestamp else '—') }}</td>
+          <td class="num">{{ s.reached }}</td>
+          <td>{{ s.questions or '—' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3"><div class="empty">No reports.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+renderCbvChart('cbvChart', {{ chart | tojson }});
+</script>
+{% endblock %}

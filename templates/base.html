@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}ACADES CBV Dashboard{% endblock %}</title>
+<link rel="stylesheet" href="/static/css/app.css?v=10">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <img class="brand-mark" src="/assets/applogo.svg" alt="ACADES logo">
+      <div class="brand-copy">
+        <div class="brand-name">ACADES</div>
+        <div class="brand-sub">CBV Dashboard</div>
+      </div>
+      <button class="sidebar-toggle" id="sidebarToggle" type="button"
+              aria-label="Collapse sidebar" title="Collapse sidebar" aria-expanded="true">‹</button>
+    </div>
+    <nav>
+      <a href="/" class="{{ 'active' if active_nav == 'overview' }}" title="Overview"><span class="nav-ic">◈</span><span class="nav-label">Overview</span></a>
+      <a href="/cbvs" class="{{ 'active' if active_nav == 'cbvs' }}" title="CBVs"><span class="nav-ic">☰</span><span class="nav-label">CBVs</span></a>
+      <a href="/feedback" class="{{ 'active' if active_nav == 'feedback' }}" title="Farmer feedback"><span class="nav-ic">✎</span><span class="nav-label">Farmer feedback</span></a>
+      <a href="/recommendations" class="{{ 'active' if active_nav == 'recommendations' }}" title="Bundle recommendations"><span class="nav-ic">✦</span><span class="nav-label">Bundle recommendations</span></a>
+      <a href="/bundles" class="{{ 'active' if active_nav == 'bundles' }}" title="Bundle history"><span class="nav-ic">▤</span><span class="nav-label">Bundle history</span></a>
+      <a href="/follow-up" class="{{ 'active' if active_nav == 'follow-up' }}" title="Follow-up worklist"><span class="nav-ic">✓</span><span class="nav-label">Follow-up worklist</span></a>
+      <a href="/names" class="{{ 'active' if active_nav == 'names' }}" title="Name matching"><span class="nav-ic">⚙</span><span class="nav-label">Name matching</span></a>
+    </nav>
+    <div class="sidebar-foot">
+      <a href="{{ sheet_url }}" target="_blank" rel="noopener">Open Google Sheet ↗</a>
+      <div class="tiny dim">Read-only. This app never writes to the sheet.</div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>{% block page_title %}{% endblock %}</div>
+      <div class="topbar-right">
+        {% if loaded_at %}
+        <span class="sync {{ 'stale' if age_seconds and age_seconds > 600 }}" title="Cached sheet data">
+          {% if age_seconds is not none and age_seconds < 60 %}synced {{ age_seconds }}s ago
+          {% elif age_seconds is not none %}synced {{ (age_seconds // 60) }}m ago{% else %}synced{% endif %}
+        </span>
+        <form method="post" action="/refresh" class="inline"><button class="btn btn-ghost" type="submit">Refresh</button></form>
+        {% endif %}
+        {% if user %}
+        <span class="whoami">{{ user }}</span>
+        <form method="post" action="/logout" class="inline"><button class="btn btn-ghost" type="submit">Log out</button></form>
+        {% endif %}
+      </div>
+    </header>
+
+    {% if refresh_summary %}
+    {% if refresh_summary.error %}
+    <div class="banner banner-error"><strong>Refresh failed.</strong> {{ refresh_summary.error }}</div>
+    {% elif refresh_summary.unavailable %}
+    <div class="banner banner-warn"><strong>Refresh completed.</strong> There was no previous cached data to compare.</div>
+    {% else %}
+    <div class="banner banner-ok">
+      <strong>Refresh complete.</strong>
+      {% if refresh_summary.changes %}
+      Monthly count changes:
+      <ul>
+        {% for change in refresh_summary.changes %}
+        <li>{{ month_label(change.month) }}: {{ '%+d'|format(change.encounters) }} encounters, {{ '%+d'|format(change.submissions) }} submitted forms</li>
+        {% endfor %}
+      </ul>
+      {% else %}No monthly encounter or submitted-form counts changed.{% endif %}
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if sheet_error %}
+    <div class="banner banner-error">
+      <strong>Cannot reach the sheet.</strong> {{ sheet_error }}
+      <div class="tiny">Make sure the sheet is shared: <em>Share → General access → Anyone with the link → Viewer</em>.</div>
+    </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+    {% if problems %}
+    <details class="data-notes">
+      <summary>Data quality details ({{ problems|length }})</summary>
+      <ul>{% for p in problems %}<li>{{ p }}</li>{% endfor %}</ul>
+    </details>
+    {% endif %}
+  </main>
+</div>
+<script src="/static/js/app.js?v=9"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

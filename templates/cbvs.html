@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}CBVs · ACADES CBV Dashboard{% endblock %}
+{% block page_title %}<h1>CBVs</h1>{% endblock %}
+{% block content %}
+
+<form class="filters" method="get" action="/cbvs">
+  <div class="field">
+    <label>Month</label>
+    <select name="month" onchange="this.form.submit()">
+      <option value="all" {{ 'selected' if month == 'all' }}>All time</option>
+      {% for m in months %}
+      <option value="{{ m.value }}" {{ 'selected' if m.selected and month != 'all' }}>{{ m.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label>Search name / district</label>
+    <input type="search" name="q" value="{{ q }}" placeholder="e.g. Kasungu, Aubrey…">
+  </div>
+  <div class="field">
+    <label>Sort by</label>
+    <select name="sort" onchange="this.form.submit()">
+      <option value="encounters" {{ 'selected' if sort == 'encounters' }}>Encounters (high → low)</option>
+      <option value="total" {{ 'selected' if sort == 'total' }}>All-time encounters</option>
+      <option value="reported" {{ 'selected' if sort == 'reported' }}>Self-reported reach</option>
+      <option value="name" {{ 'selected' if sort == 'name' }}>Name (A → Z)</option>
+    </select>
+  </div>
+  <div class="check">
+    <input type="checkbox" id="low" name="low" value="1" {{ 'checked' if low }} onchange="this.form.submit()">
+    <label for="low" style="text-transform:none;font-size:13px;letter-spacing:0">
+      only ≤ {{ low_threshold }} encounters <span class="pill-count">{{ low_count }}</span>
+    </label>
+  </div>
+  <button class="btn" type="submit">Apply</button>
+  {% if low or q %}<a class="btn btn-ghost" href="/cbvs?month={{ month }}">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+  <div class="page-head">
+    <div>
+      <h2>{{ rows|length }} CBV{{ 's' if rows|length != 1 }} shown</h2>
+      <div class="sub">
+        {{ 'All time' if month == 'all' else month_label(month) }} · {{ total_in_month }} CBV{{ 's' if total_in_month != 1 }} listed ·
+        {{ low_count }} at or below {{ low_threshold }} encounters
+      </div>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>CBV</th><th>District</th>
+          <th class="num">Encounters</th><th class="num">Report</th><th class="num">Self-reported</th>
+          <th class="num">Feedback</th><th>Last activity</th><th>All time</th><th>Bundle</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in rows %}
+        <tr>
+          <td class="rank">{{ loop.index }}</td>
+          <td><a class="name-link" href="/cbv?key={{ r.key | urlencode }}">{{ r.cbv }}</a></td>
+          <td>{{ r.district or '—' }}</td>
+          <td class="num">
+            {% if r.encounters <= low_threshold %}
+              <span class="badge {{ 'red' if r.encounters == 0 else 'amber' }}">{{ r.encounters }}</span>
+            {% else %}<b>{{ r.encounters }}</b>{% endif %}
+          </td>
+          <td class="num">{% if r.encounters > 0 %}<span class="badge green">yes</span>{% else %}<span class="badge red">no</span>{% endif %}</td>
+          <td class="num muted">{{ r.reported if r.reported else '—' }}</td>
+          <td class="num muted">{{ (r.comments + r.questions) if (r.comments + r.questions) else '—' }}</td>
+          <td class="muted">{{ r.last_active or '—' }}</td>
+          <td class="mono muted">
+            {{ r.all_time }}
+            {% if r.undated %}<span class="badge amber" title="encounters with no date in the sheet">+{{ r.undated }} ?</span>{% endif %}
+          </td>
+          <td>
+            {% if r.got_this_month %}<span class="badge green">received</span>
+            {% elif r.last_bundle %}<span class="badge gray">since {{ month_label(r.last_bundle) }}</span>
+            {% else %}<span class="badge blue">never</span>{% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="10"><div class="empty">No CBVs match these filters.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

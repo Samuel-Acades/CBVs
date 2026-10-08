@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Overview · ACADES CBV Dashboard{% endblock %}
+{% block page_title %}<h1>Overview</h1>{% endblock %}
+{% block content %}
+
+<div class="grid kpis">
+  <div class="card kpi">
+    <div class="label">Active CBVs</div>
+    <div class="value">{{ kpis.total_cbvs }}</div>
+    <div class="foot">ever appeared in the sheet</div>
+  </div>
+  <div class="card kpi accent">
+    <div class="label">Total encounters</div>
+    <div class="value">{{ kpis.total_encounters }}</div>
+    <div class="foot">{% if kpis.undated_encounters %}<span class="badge amber">{{ kpis.undated_encounters }} without date</span>{% else %}all dated{% endif %}</div>
+  </div>
+  <div class="card kpi">
+    <div class="label">Encounters · {{ month_label(kpis.ref_month) }}</div>
+    <div class="value">{{ kpis.encounters_ref_month }}</div>
+    <div class="foot">
+      {% if kpis.mom_growth_pct is not none %}
+        <span class="{{ 'up' if kpis.mom_growth_pct >= 0 else 'down' }}">{{ '%+.1f'|format(kpis.mom_growth_pct) }}%</span>
+        vs {{ month_label(kpis.prev_month) }} ({{ kpis.encounters_prev_month }})
+      {% else %}no prior complete month{% endif %}
+    </div>
+  </div>
+  <div class="card kpi">
+    <div class="label">CBVs active · {{ month_label(kpis.ref_month) }}</div>
+    <div class="value">{{ kpis.active_ref_month }}</div>
+    <div class="foot">{{ kpis.reported_ref_month }} sent a report</div>
+  </div>
+  <div class="card kpi amber">
+    <div class="label">Bundles given · {{ month_label(kpis.ref_month) }}</div>
+    <div class="value">{{ kpis.bundles_ref_month }}</div>
+    <div class="foot"><a href="/bundles">add bundle files</a> · <a href="/recommendations">see who's next</a></div>
+  </div>
+  <div class="card kpi">
+    <div class="label">Feedback captured</div>
+    <div class="value">{{ kpis.feedback_count }}</div>
+    <div class="foot"><a href="/feedback">read comments & questions</a></div>
+  </div>
+  <div class="card kpi">
+    <div class="label">Follow-up items · {{ month_label(month) }}</div>
+    <div class="value">{{ follow_up_count }}</div>
+    <div class="foot"><a href="/follow-up?month={{ month }}">review reporting, contact & bundle checks</a></div>
+  </div>
+</div>
+
+<div class="grid cols-2">
+  <div class="card">
+    <h2>Encounters per month</h2>
+    <div class="sub">
+      Bars = actual · click a bar to see the counted rows · dashed line = projection
+      {% if kpis.run_rate %} · {{ month_label(kpis.run_rate.month) }} run-rate ≈ <b>{{ kpis.run_rate.forecast }}</b> (day {{ kpis.run_rate.day }}/{{ kpis.run_rate.days }}){% endif %}
+      {% if kpis.projection %} · {{ kpis.projection.target_month }} trend ≈ <b>{{ kpis.projection.forecast }}</b>{% endif %}
+    </div>
+    <div class="chart-box"><div id="trendChart"></div></div>
+  </div>
+
+  <div class="card">
+    <h2>Bundle status · {{ month_label(month) }}</h2>
+    <div class="sub">Who is eligible for the next data-bundle round</div>
+    <div class="chart-box"><div id="statusChart"></div></div>
+    <div class="statline">
+      <span><b>{{ status_counts.recommended }}</b> recommended</span>
+      <span><b>{{ status_counts.received }}</b> already received</span>
+      <span><b>{{ status_counts.no_report }}</b> no encounters</span>
+      <span><b>{{ status_counts.excluded }}</b> excluded</span>
+    </div>
+    <p style="margin:10px 0 0"><a class="btn btn-sm" href="/recommendations?month={{ month }}">Open recommendations →</a></p>
+  </div>
+</div>
+
+<div class="grid cols-2" style="margin-top:14px">
+  <div class="card">
+    <h2>Top CBVs by encounters · {{ month_label(month) }}</h2>
+    <div class="sub">most → least, selected month</div>
+    <div class="chart-box chart-scroll" id="topChart"></div>
+  </div>
+
+  <div class="card">
+    <h2>Low activity watchlist <span class="pill-count">≤ {{ low_threshold }} encounters</span></h2>
+    <div class="sub">{{ month_label(month) }} — candidates to check before giving bundles</div>
+    {% if low_rows %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>CBV</th><th class="num">Encounters</th><th class="num">Report</th><th>All time</th></tr></thead>
+        <tbody>
+        {% for r in low_rows %}
+          <tr>
+            <td><a class="name-link" href="/cbv?key={{ r.key | urlencode }}">{{ r.cbv }}</a></td>
+            <td class="num"><span class="badge {{ 'red' if r.encounters == 0 else 'amber' }}">{{ r.encounters }}</span></td>
+            <td class="num">{% if r.encounters > 0 %}<span class="badge green">yes</span>{% else %}<span class="badge red">no</span>{% endif %}</td>
+            <td class="mono muted">{{ r.all_time }}{% if r.undated %} <span class="badge amber">+{{ r.undated }} undated</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<div class="empty">Nobody at or below {{ low_threshold }} encounters this month.</div>{% endif %}
+    <p style="margin:10px 0 0"><a class="btn btn-ghost btn-sm" href="/cbvs?month={{ month }}&low=1">See full watchlist →</a></p>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+renderOverviewCharts({
+  chart: {{ chart | tojson }},
+  status: {{ status_counts | tojson }},
+  top: {{ top | tojson }}
+});
+</script>
+{% endblock %}

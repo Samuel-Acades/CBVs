@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Bundle recommendations · ACADES CBV Dashboard{% endblock %}
+{% block page_title %}<h1>{{ 'All recommended CBVs' if full_view else 'Bundle recommendations' }}</h1>{% endblock %}
+{% block content %}
+
+{% if saved %}<div class="banner banner-ok msg">Saved your decision.</div>{% endif %}
+
+<form class="filters" method="get" action="/recommendations">
+  <div class="field">
+    <label>Verify against month</label>
+    <select name="month" onchange="this.form.submit()">
+      {% for m in months %}
+      <option value="{{ m.value }}" {{ 'selected' if m.selected }}>{{ m.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <a class="btn btn-ghost" href="/recommendations/export.xlsx?month={{ month }}">Download Excel</a>
+  <a class="btn btn-ghost" href="/recommendations/export.csv?month={{ month }}">Download CSV</a>
+  <button class="btn btn-ghost" type="button" onclick="copyNames()">Copy names ({{ recommended_names|length }})</button>
+  <a class="btn btn-ghost" href="/bundles">Bundle history</a>
+</form>
+
+<div class="grid kpis">
+  <div class="card kpi accent">
+    <div class="label">Recommended next</div>
+    <div class="value">{{ rec.counts.recommended }}</div>
+    <div class="foot">encounters in {{ month_label(month) }}, no bundle that month</div>
+  </div>
+  <div class="card kpi">
+    <div class="label">Already received</div>
+    <div class="value">{{ rec.counts.received }}</div>
+    <div class="foot">bundle file matches {{ month_label(month) }}</div>
+  </div>
+  <div class="card kpi">
+    <div class="label">No encounters</div>
+    <div class="value">{{ rec.counts.no_report }}</div>
+    <div class="foot">no encounters recorded in {{ month_label(month) }}</div>
+  </div>
+  <div class="card kpi amber">
+    <div class="label">Excluded by you</div>
+    <div class="value">{{ rec.counts.excluded }}</div>
+    <div class="foot">manual decisions kept locally</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="copy-row" style="margin-bottom:10px">
+    <div class="copy-box" id="nameList">{{ recommended_names | join('\n') }}</div>
+    <span class="tiny muted">Copy-ready list; this does not send a WhatsApp message.</span>
+  </div>
+
+  <div class="copy-row" style="justify-content:space-between">
+    <h2>{{ 'All recommended CBVs' if full_view else 'Recommended list' }} <span class="badge green">{{ rec.counts.recommended }}</span></h2>
+    {% if full_view %}
+    <a class="btn btn-ghost btn-sm" href="/recommendations?month={{ month }}">Back to top 10</a>
+    {% elif rec.counts.recommended > 10 %}
+    <a class="btn btn-ghost btn-sm" href="/recommendations/full?month={{ month }}">See all {{ rec.counts.recommended }} →</a>
+    {% endif %}
+  </div>
+  <div class="sub">
+    Eligible CBVs are ordered by encounters (highest first). “Encounters when bundled” shows their encounter count in the month of their latest bundle, up to the selected month.
+    Use Include/Exclude to adjust the list after WhatsApp feedback.
+    The optional note is saved here only; no message is sent.
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>CBV</th><th>Phone</th><th>District</th>
+          <th class="num">Encounters</th>
+          <th>Last bundle</th><th class="num">Encounters reported when bundled</th><th>Why</th><th>Manual decision</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in visible_recommended %}
+        <tr>
+          <td class="rank">{{ r.rank }}</td>
+          <td><a class="name-link" href="/cbv?key={{ r.key | urlencode }}&month={{ month | urlencode }}">{{ r.cbv }}</a></td>
+          <td>{{ r.phone or '—' }}</td>
+          <td class="muted">{{ r.district or '—' }}</td>
+          <td class="num"><b>{{ r.encounters }}</b></td>
+          <td class="muted">{{ month_label(r.last_bundle) if r.last_bundle else 'never' }}</td>
+          <td class="num">{% if r.last_bundle %}{{ r.last_bundle_encounters }}{% else %}—{% endif %}</td>
+          <td><div class="chips">{% for reason in r.reasons %}<span class="chip">{{ reason }}</span>{% endfor %}</div></td>
+          <td>{% include "_decision.html" %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="9"><div class="empty">Nobody eligible — check the month selector and bundle files.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if not full_view and (rec.counts.received or rec.counts.no_report or rec.counts.excluded) %}
+<div class="card" style="margin-top:14px">
+  <h2>Other CBVs</h2>
+  <div class="sub">not in the recommended list this month</div>
+  <div class="table-wrap" style="max-height:52vh;overflow:auto">
+    <table>
+      <thead><tr><th>CBV</th><th>Phone</th><th>Status</th><th class="num">Encounters</th><th>Why</th><th>Manual decision</th></tr></thead>
+      <tbody>
+      {% for r in rec['items'] if r.status in ('received', 'no_report', 'excluded') %}
+        <tr>
+          <td><a class="name-link" href="/cbv?key={{ r.key | urlencode }}&month={{ month | urlencode }}">{{ r.cbv }}</a></td>
+          <td>{{ r.phone or '—' }}</td>
+          <td>
+            {% if r.status == 'received' %}<span class="badge green">received</span>
+            {% elif r.status == 'excluded' %}<span class="badge red">excluded</span>
+            {% else %}<span class="badge gray">no encounters</span>{% endif %}
+          </td>
+          <td class="num">{{ r.encounters }}</td>
+          <td><div class="chips">{% for reason in r.reasons %}<span class="chip">{{ reason }}</span>{% endfor %}</div></td>
+          <td>{% include "_decision.html" %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

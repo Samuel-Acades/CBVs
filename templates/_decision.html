@@ -1,0 +1,13 @@
+<form method="post" action="/recommendations/override" class="copy-row" style="gap:6px">
+  <input type="hidden" name="cbv_key" value="{{ r.key }}">
+  <input type="hidden" name="month" value="{{ month }}">
+  <input type="text" name="note" value="{{ r.override_note }}" placeholder="Optional WhatsApp note (not sent)" title="Saved on this dashboard only; this does not send a WhatsApp message." class="note" style="min-width:190px;font-size:12px;padding:5px 8px">
+  {% if full_view %}<input type="hidden" name="full" value="1">{% endif %}
+  {% if r.status in ('received', 'no_report') %}
+    <button class="btn btn-sm btn-amber" name="action" value="include" type="submit" title="Add to recommendations">Include</button>
+  {% elif r.status == 'eligible' %}
+    <button class="btn btn-red btn-sm" name="action" value="exclude" type="submit" title="Remove from recommendations">Exclude</button>
+  {% else %}
+    <button class="btn btn-ghost btn-sm" name="action" value="clear" type="submit">Undo</button>
+  {% endif %}
+</form>

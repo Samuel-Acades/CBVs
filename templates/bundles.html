@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Bundle history · ACADES CBV Dashboard{% endblock %}
+{% block page_title %}<h1>Bundle history</h1>{% endblock %}
+{% block content %}
+
+{% if done == 'empty' %}<div class="banner banner-warn msg">The file was empty — nothing saved.</div>{% endif %}
+{% if done.startswith('saved:') %}<div class="banner banner-ok msg">Saved <b>{{ done[6:] }}</b> — scanned into the history below.</div>{% endif %}
+
+<div class="grid cols-2">
+  <div class="card">
+    <h2>Add bundle records</h2>
+    <div class="sub">
+      Drop the Excel/CSV file listing CBVs who <b>received</b> a data bundle (name + date/month columns).
+      Files are kept in the project <code>bundles/</code> folder and re-scanned automatically.
+      <br>Naming a file like <code>bundles_2026-09.xlsx</code> or <code>Sept 2025.xlsx</code> dates every row inside it.
+    </div>
+    <form method="post" action="/bundles/upload" enctype="multipart/form-data" class="copy-row">
+      <input type="file" name="file" accept=".xlsx,.xls,.csv" required>
+      <button class="btn" type="submit">Upload</button>
+    </form>
+    {% if files %}
+    <div class="section-title" style="font-size:13px">Files in folder</div>
+    <div class="chips">{% for f in files %}<span class="chip">{{ f }}</span>{% endfor %}</div>
+    {% else %}
+    <div class="banner banner-warn" style="margin-top:14px">
+      No files yet. Until a file is added, <b>every</b> active CBV looks like they never received a bundle —
+      so recommendations will include people who may already have been paid out.
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>How it's used</h2>
+    <div class="sub">The recommendation engine cross-checks each CBV against these files:</div>
+    <ul style="line-height:1.9;margin:0;padding-left:18px">
+      <li><b>Received last month?</b> → held back (already got a bundle)</li>
+      <li><b>Never received</b> → priority boost</li>
+      <li><b>Received a while ago</b> → moderate boost (gap in months)</li>
+      <li>Names are fuzzy-matched and respect your <a href="/names">confirmed merges</a></li>
+    </ul>
+    {% if errors %}
+    <div class="banner banner-error" style="margin-top:12px">
+      <strong>Import notes:</strong>
+      <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% for month, rows in by_month.items() %}
+<div class="card" style="margin-top:14px">
+  <h2>{{ month_label(month) if month.startswith('20') else month }} <span class="badge gray">{{ rows|length }} CBVs</span></h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>CBV</th><th>Received on</th><th>Encounters reported that month</th><th>Reporting activity</th><th>File</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr>
+          <td><a class="name-link" href="/cbv?key={{ r.record.cbv_key | urlencode }}">{{ r.record.cbv }}</a></td>
+          <td class="muted">{{ r.record.received_date or '—' }}</td>
+          <td class="num"><b>{{ r.encounters if r.encounters is not none else '—' }}</b></td>
+          <td>{% if r.reported is none %}<span class="badge gray">not checked</span>{% elif r.reported %}<span class="badge green">reported</span>{% else %}<span class="badge amber">no encounters</span>{% endif %}</td>
+          <td class="muted tiny">{{ r.record.source_file }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card empty" style="margin-top:14px">No bundle records found in the <code>bundles/</code> folder yet.</div>
+{% endfor %}
+{% endblock %}

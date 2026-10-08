@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Sheet unavailable · ACADES CBV Dashboard{% endblock %}
+{% block page_title %}<h1>Sheet unavailable</h1>{% endblock %}
+{% block content %}
+<div class="card" style="max-width:640px">
+  <h2>Cannot read the Google Sheet</h2>
+  <div class="sub">The dashboard reads the sheet read-only. It looks like access is missing.</div>
+  <p>{{ sheet_error }}</p>
+  <ol style="line-height:1.9">
+    <li>Open the <a href="{{ sheet_url }}" target="_blank">Google Sheet</a>.</li>
+    <li>Click <b>Share</b> → <b>General access</b>.</li>
+    <li>Choose <b>Anyone with the link</b> → <b>Viewer</b>.</li>
+    <li>Come back and hit <b>Refresh</b> in the top bar.</li>
+  </ol>
+  <form method="post" action="/refresh"><button class="btn" type="submit">Try again</button></form>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Farmer feedback · ACADES CBV Dashboard{% endblock %}
+{% block page_title %}<h1>Farmer feedback</h1>{% endblock %}
+{% block content %}
+
+<form class="filters" method="get" action="/feedback">
+  <div class="field">
+    <label>Month</label>
+    <select name="month" onchange="this.form.submit()">
+      <option value="">All months</option>
+      {% for m in months %}
+      <option value="{{ m.value }}" {{ 'selected' if m.selected and month }}>{{ m.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label>Type</label>
+    <select name="kind" onchange="this.form.submit()">
+      <option value="all" {{ 'selected' if kind == 'all' }}>Comments + questions</option>
+      <option value="comment" {{ 'selected' if kind == 'comment' }}>Farmer comments only</option>
+      <option value="question" {{ 'selected' if kind == 'question' }}>Questions asked only</option>
+    </select>
+  </div>
+  <div class="field">
+    <label>Search</label>
+    <input type="search" name="q" value="{{ q }}" placeholder="text or CBV name…">
+  </div>
+  <button class="btn" type="submit">Search</button>
+  {% if q or month or kind != 'all' %}<a class="btn btn-ghost" href="/feedback">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+  <h2>{{ total_items }} entr{{ 'y' if total_items == 1 else 'ies' }}{% if items|length < total_items %} <span class="badge gray">showing {{ items|length }}</span>{% endif %}</h2>
+  <div class="sub">
+    Comments come from the <b>Farmers</b> tab · Questions come from the <b>Submissions</b> tab
+    ("Common Questions / Mafunso")
+  </div>
+  {% if items %}
+  <div class="table-wrap" style="max-height:75vh;overflow:auto">
+    <table>
+      <thead><tr><th>Type</th><th>CBV</th><th>Month</th><th>Who / where</th><th>What they said</th></tr></thead>
+      <tbody>
+      {% for f in items %}
+        <tr>
+          <td><span class="badge {{ 'green' if f.kind == 'Farmer comment' else 'blue' }}">{{ f.kind }}</span></td>
+          <td><a class="name-link" href="/cbv?key={{ f.key | urlencode }}">{{ f.cbv }}</a></td>
+          <td class="muted">{{ month_label(f.month) }}</td>
+          <td class="muted">{{ f.person or f.district or '—' }}</td>
+          <td>{{ f.text }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}<div class="empty">Nothing matches.</div>{% endif %}
+</div>
+{% endblock %}

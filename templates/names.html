@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Name matching · ACADES CBV Dashboard{% endblock %}
+{% block page_title %}<h1>Name matching</h1>{% endblock %}
+{% block content %}
+
+<div class="banner banner-warn">
+  <b>Why this page exists:</b> the same CBV can appear as <i>Yvone Lufeyo</i> / <i>Yvonne Lufeyo</i>,
+  <i>Josam Gladson</i> / <i>Josam Gladsy</i>, with a middle name added, or in odd capitalisation.
+  Confirm a merge and every chart, watchlist, recommendation and bundle history entry treats them as one person.
+  <b>Merges are stored on this computer only — the sheet is never edited.</b>
+</div>
+
+{% if done %}<div class="banner banner-ok msg">Merge saved. Activity, recommendations and bundle history now use the merged name.</div>{% endif %}
+{% if removed %}<div class="banner banner-ok msg">Merge undone — the names are separate again.</div>{% endif %}
+
+<div class="grid cols-2">
+  <div class="card">
+    <h2>Suspected duplicates <span class="pill-count">{{ suspected|length }}</span></h2>
+    <div class="sub">Review each group. Pick the spelling to keep, then merge. {{ n_raw }} distinct raw names scanned.</div>
+
+    {% if suspected %}
+      {% for grp in suspected %}
+      <div class="merge-card">
+        <div class="copy-row">
+          <span class="badge {{ 'amber' if grp.members|length > 2 else 'blue' }}">{{ grp.members|length }} names</span>
+          <span class="badge gray">{{ grp.rows }} rows</span>
+          {% if grp.months %}<span class="chip">months: {% for m in grp.months %}{{ month_label(m) }}{{ ', ' if not loop.last }}{% endfor %}</span>{% endif %}
+          {% for p in grp.pairs %}{% if p.score < 100 %}<span class="chip">{{ p.a }} ↔ {{ p.b }}: {{ p.score }}%</span>{% endif %}{% endfor %}
+        </div>
+
+        <form method="post" action="/names/merge">
+          <div class="merge-names">
+            {% for m in grp.members %}
+            <label class="merge-name {{ 'canon' if loop.first }}">
+              <input type="radio" name="canonical_choice" value="{{ m }}" {{ 'checked' if loop.first }}
+                     onchange="this.closest('form').querySelector('[name=canonical]').value = this.value">
+              {{ m }}
+            </label>
+            {% endfor %}
+          </div>
+          <div class="copy-row">
+            <input type="hidden" name="canonical" value="{{ grp.canonical }}">
+            {% for m in grp.members %}<input type="hidden" name="members" value="{{ m }}">{% endfor %}
+            <span class="muted tiny">Keeps the highlighted spelling; all rows are combined under it.</span>
+            <button class="btn btn-sm" type="submit">Merge this group</button>
+          </div>
+        </form>
+
+        <form method="post" action="/names/merge" style="margin-top:8px">
+          <div class="copy-row">
+            <input type="hidden" name="canonical" value="">
+            {% for m in grp.members %}<input type="hidden" name="members" value="{{ m }}">{% endfor %}
+            <input type="text" name="canonical_typed" placeholder="…or type a corrected name"
+                   oninput="this.form.querySelector('[name=canonical]').value = this.value" style="min-width:220px">
+            <button class="btn btn-ghost btn-sm" type="submit">Merge under new spelling</button>
+          </div>
+        </form>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">No suspected duplicates — names look consistent.<br>
+      <span class="tiny">Merged groups disappear from here.</span></div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Confirmed merges <span class="badge gray">{{ merged_aliases|length }}</span></h2>
+    <div class="sub">Active on this machine. Undo any time.</div>
+    {% if merged_aliases %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Alias (as typed)</th><th></th><th>Unified as</th><th class="num">Rows</th><th></th></tr></thead>
+      <tbody>
+      {% for a in merged_aliases %}
+        <tr>
+          <td>{{ a.alias }}</td>
+          <td class="arrow">→</td>
+          <td><b>{{ a.canonical }}</b></td>
+          <td class="num muted">{{ a.rows }}</td>
+          <td>
+            <form method="post" action="/names/unmerge" class="inline">
+              <input type="hidden" name="alias_key" value="{{ a.key }}">
+              <button class="btn btn-red btn-sm" type="submit">Undo</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<div class="empty">Nothing merged yet.</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

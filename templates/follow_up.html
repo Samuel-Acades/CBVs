@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Follow-up worklist · ACADES CBV Dashboard{% endblock %}
+{% block page_title %}<h1>Follow-up worklist</h1>{% endblock %}
+{% block content %}
+
+<form class="filters" method="get" action="/follow-up">
+  <div class="field">
+    <label>Month to review</label>
+    <select name="month" onchange="this.form.submit()">
+      {% for m in months %}
+      <option value="{{ m.value }}" {{ 'selected' if m.selected }}>{{ m.label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <a class="btn btn-ghost" href="/follow-up/export.csv?month={{ month | urlencode }}">Download CSV</a>
+  <a class="btn btn-ghost" href="/">Overview</a>
+</form>
+
+<div class="card">
+  <h2>{{ rows|length }} CBV{{ 's' if rows|length != 1 }} to check · {{ month_label(month) }}</h2>
+  <div class="sub">
+    These are review prompts, not confirmed errors. Reach greater than encounters compares the Submissions form's self-reported count with Farmers-tab rows.
+    A form date differing from its timestamp by more than 7 days may reflect backdating; verify before changing records.
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>CBV</th><th>Phone</th><th>District</th><th class="num">Encounters</th><th class="num">Forms</th><th class="num">Self-reported reach</th><th>Last bundle</th><th>Follow-up checks</th></tr>
+      </thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td><a class="name-link" href="/cbv?key={{ row.key | urlencode }}">{{ row.cbv }}</a></td>
+          <td>{{ row.phone or '—' }}</td>
+          <td>{{ row.district or '—' }}</td>
+          <td class="num">{{ row.encounters }}</td>
+          <td class="num">{{ row.submission_count }}</td>
+          <td class="num">{{ row.reported_reach }}</td>
+          <td>{{ month_label(row.last_bundle) if row.last_bundle else 'Never' }}</td>
+          <td><div class="chips">{% for flag in row.flags %}<span class="chip">{{ flag }}</span>{% endfor %}</div></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8"><div class="empty">No follow-up checks for this month.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
