@@ -114,14 +114,26 @@ _ISO_FORMATS = (
     "%Y-%m-%d",
     "%Y/%m/%d %H:%M:%S",
     "%Y/%m/%d",
+)
+
+_MDY_FORMATS = (
+    "%m/%d/%Y %H:%M:%S.%f",
+    "%m/%d/%Y %H:%M:%S",
+    "%m/%d/%Y",
+    "%m/%d/%y %H:%M:%S",
+    "%m/%d/%y",
+    "%m-%d-%Y",
+)
+
+_DMY_FORMATS = (
+    "%d/%m/%Y %H:%M:%S",
     "%d/%m/%Y",
     "%d-%m-%Y",
-    "%m/%d/%Y",
 )
 
 
 def to_date(v) -> tuple[str, str]:
-    """-> (YYYY-MM, ISO date). Tries exact formats first; never mis-parses ISO dates."""
+    """-> (YYYY-MM, ISO date). ISO first, then month/day/year (e.g. 11/13/2026)."""
     if v is None:
         return "", ""
     if isinstance(v, float) and pd.isna(v):
@@ -136,18 +148,19 @@ def to_date(v) -> tuple[str, str]:
     s = str(v).strip()
     if not s or s.lower() in ("nan", "nat", "none", "null"):
         return "", ""
-    for fmt in _ISO_FORMATS:
+    for fmt in _ISO_FORMATS + _MDY_FORMATS + _DMY_FORMATS:
         try:
             ts = datetime.strptime(s, fmt)
             return ts.strftime("%Y-%m"), ts.date().isoformat()
         except ValueError:
             continue
-    try:
-        ts = pd.to_datetime(s, dayfirst=True, errors="raise")
-        if not pd.isna(ts):
-            return f"{ts.year:04d}-{ts.month:02d}", ts.date().isoformat()
-    except Exception:  # noqa: BLE001
-        return "", ""
+    for dayfirst in (False, True):
+        try:
+            ts = pd.to_datetime(s, dayfirst=dayfirst, errors="raise")
+            if not pd.isna(ts):
+                return f"{ts.year:04d}-{ts.month:02d}", ts.date().isoformat()
+        except Exception:  # noqa: BLE001
+            continue
     return "", ""
 
 

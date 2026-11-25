@@ -801,8 +801,21 @@ def _load_gemini_shortlist():
         return None, None
 
 
-def _build_cbv_lookup(ds, records):
+def _build_cbv_lookup(ds, records, merges=None):
     phone_for = _phone_by_key(records)
+    aliases: dict[str, set[str]] = {}
+
+    def add_alias(key: str, name: str) -> None:
+        if key and name:
+            aliases.setdefault(key, set()).add(name)
+
+    for e in ds.encounters:
+        add_alias(e.cbv_key, e.cbv_raw)
+    for s in ds.submissions:
+        add_alias(s.cbv_key, s.cbv_raw)
+    for alias_key, canonical in (merges or {}).items():
+        add_alias(normalize.name_key(canonical), normalize.display_name(alias_key))
+
     by_cbv = {}
     for key in {e.cbv_key for e in ds.encounters} | {s.cbv_key for s in ds.submissions}:
         monthly_enc = {m: 0 for m in ds.months}
@@ -839,6 +852,7 @@ def _build_cbv_lookup(ds, records):
         by_cbv[key] = {
             "key": key,
             "name": name or key,
+            "aliases": sorted(aliases.get(key, set())),
             "district": district,
             "phone": phone_for(key),
             "monthly": monthly,
@@ -943,19 +957,33 @@ def gemini_recommendations(request: Request, generated: str = "", q: str = ""):
             cbv = cbv_rows.get(key, {})
             excluded_rows.append({**item, "key": key, "exists": bool(cbv), "current_encounters": cbv.get("encounters", 0)})
 
-    lookup = _build_cbv_lookup(ds, records)
+    lookup = _build_cbv_lookup(ds, records, store.get_merges())
     query = (q or "").strip()
     query_norm = re.sub(r"[^0-9]", "", query)
+    query_lower = query.lower()
     matches = []
     if query:
         for row in lookup.values():
-            name_hit = query.lower() in row["name"].lower()
+            name_hit = False
+            for candidate in [row["name"], *row["aliases"]]:
+                if query_lower in candidate.lower():
+                    name_hit = True
+                    break
+                if len(query) >= 5 and normalize.similarity(query, candidate) >= 88:
+                    name_hit = True
+                    break
             phone = re.sub(r"[^0-9]", "", row.get("phone", ""))
             phone_hit = bool(query_norm) and (query_norm in phone or phone in query_norm and len(query_norm) >= 5)
             if name_hit or phone_hit:
                 decision = _gemini_decision(row, shortlist, ref_month)
                 matches.append({**row, "decision": decision})
-        matches.sort(key=lambda r: (-r["recent_3m_total"], -r["total"], r["name"]))
+        matches.sort(
+            key=lambda r: (
+                -(r["recent_3m_encounters"] + r["recent_3m_submissions"]),
+                -(r["total_encounters"] + r["total_submissions"]),
+                r["name"],
+            )
+        )
         matches = matches[:20]
 
     generated_label = time.strftime("%Y-%m-%d %H:%M", time.localtime(generated_at)) if generated_at else ""
