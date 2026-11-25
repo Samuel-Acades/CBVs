@@ -805,7 +805,8 @@ def _build_cbv_lookup(ds, records):
     phone_for = _phone_by_key(records)
     by_cbv = {}
     for key in {e.cbv_key for e in ds.encounters} | {s.cbv_key for s in ds.submissions}:
-        monthly = {m: 0 for m in ds.months}
+        monthly_enc = {m: 0 for m in ds.months}
+        monthly_sub = {m: 0 for m in ds.months}
         name = ""
         district = ""
         questions = 0
@@ -814,28 +815,40 @@ def _build_cbv_lookup(ds, records):
                 continue
             name = name or e.cbv
             district = district or e.district
-            if e.month and e.month in monthly:
-                monthly[e.month] += 1
+            if e.month and e.month in monthly_enc:
+                monthly_enc[e.month] += 1
         for s in ds.unique_submissions:
             if s.cbv_key != key:
                 continue
             name = name or s.cbv
             district = district or s.district
+            if s.month and s.month in monthly_sub:
+                monthly_sub[s.month] += 1
             if s.questions:
                 questions += 1
-        total = sum(monthly.values())
-        active = [m for m, c in monthly.items() if c > 0]
+        total_enc = sum(monthly_enc.values())
+        total_sub = sum(monthly_sub.values())
+        active = [m for m in ds.months if monthly_enc.get(m, 0) > 0 or monthly_sub.get(m, 0) > 0]
         recent = ds.months[-3:]
-        recent_total = sum(monthly.get(m, 0) for m in recent)
+        recent_enc = sum(monthly_enc.get(m, 0) for m in recent)
+        recent_sub = sum(monthly_sub.get(m, 0) for m in recent)
+        monthly = {
+            m: {"encounters": monthly_enc.get(m, 0), "submissions": monthly_sub.get(m, 0)}
+            for m in ds.months
+        }
         by_cbv[key] = {
             "key": key,
             "name": name or key,
             "district": district,
             "phone": phone_for(key),
             "monthly": monthly,
-            "total": total,
+            "total_encounters": total_enc,
+            "total_submissions": total_sub,
+            "total": total_enc,
             "months_active": len(active),
-            "recent_3m_total": recent_total,
+            "recent_3m_encounters": recent_enc,
+            "recent_3m_submissions": recent_sub,
+            "recent_3m_total": recent_enc,
             "last_active": active[-1] if active else "",
             "questions": questions,
         }
@@ -851,8 +864,10 @@ def _gemini_decision(row, shortlist, ref_month):
     rec_item = next((r for r in recommended if normalize.name_key(r.get("name", "")) == key), None)
     watch_item = next((r for r in watchlist if normalize.name_key(r.get("name", "")) == key), None)
 
-    recent = row["recent_3m_total"]
-    total = row["total"]
+    recent_enc = row.get("recent_3m_encounters", row.get("recent_3m_total", 0))
+    recent_sub = row.get("recent_3m_submissions", 0)
+    total_enc = row.get("total_encounters", row.get("total", 0))
+    total_sub = row.get("total_submissions", 0)
     months_active = row["months_active"]
     last_active = row["last_active"]
 
@@ -864,15 +879,15 @@ def _gemini_decision(row, shortlist, ref_month):
         verdict = "Watchlist"
         badge = "amber"
         reason = watch_item.get("reason", "On Gemini watchlist.")
-    elif recent >= 10 and months_active >= 2:
+    elif recent_enc >= 10 and months_active >= 2:
         verdict = "Should consider"
         badge = "blue"
-        reason = f"Strong recent activity ({recent} in last 3 months across {months_active} active months) but not in current Gemini shortlist."
-    elif recent > 0:
+        reason = f"Strong recent encounter activity ({recent_enc} encounters, {recent_sub} submissions in last 3 months across {months_active} active months) but not in current Gemini shortlist."
+    elif recent_enc > 0 or recent_sub > 0:
         verdict = "Not enough recent activity"
         badge = "amber"
-        reason = f"Some recent activity ({recent} in last 3 months), but below the usual recommendation strength."
-    elif total > 0:
+        reason = f"Recent activity exists ({recent_enc} encounters, {recent_sub} submissions in last 3 months), but below the usual recommendation strength."
+    elif total_enc > 0 or total_sub > 0:
         verdict = "Inactive recently"
         badge = "red"
         reason = f"No recent activity in last 3 months; last active {month_label(last_active) if last_active else 'unknown'}."

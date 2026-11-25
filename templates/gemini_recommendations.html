@@ -24,15 +24,17 @@
   <div class="sub" style="margin-top:10px">Results for ?{{ q }}?</div>
   <div class="table-wrap">
     <table>
-      <thead><tr><th>CBV</th><th>Phone</th><th>District</th><th class="num">Recent 3m</th><th class="num">Total</th><th class="num">Months active</th><th>Last active</th><th>Decision</th></tr></thead>
+      <thead><tr><th>CBV</th><th>Phone</th><th>District</th><th class="num">Recent 3m enc</th><th class="num">Recent 3m sub</th><th class="num">Total enc</th><th class="num">Total sub</th><th class="num">Months active</th><th>Last active</th><th>Decision</th></tr></thead>
       <tbody>
       {% for m in matches %}
         <tr>
           <td><a class="name-link" href="/cbv?key={{ m.key | urlencode }}&month={{ ref_month | urlencode }}">{{ m.name }}</a></td>
           <td class="muted">{{ m.phone or '?' }}</td>
           <td class="muted">{{ m.district or '?' }}</td>
-          <td class="num"><b>{{ m.recent_3m_total }}</b></td>
-          <td class="num">{{ m.total }}</td>
+          <td class="num"><b>{{ m.recent_3m_encounters }}</b></td>
+          <td class="num">{{ m.recent_3m_submissions }}</td>
+          <td class="num">{{ m.total_encounters }}</td>
+          <td class="num">{{ m.total_submissions }}</td>
           <td class="num">{{ m.months_active }}</td>
           <td class="muted">{{ month_label(m.last_active) if m.last_active else '?' }}</td>
           <td>
@@ -41,17 +43,17 @@
           </td>
         </tr>
         <tr>
-          <td colspan="8" style="background:#fafafa">
-            <div class="tiny muted" style="margin-bottom:4px">Monthly encounters</div>
+          <td colspan="10" style="background:#fafafa">
+            <div class="tiny muted" style="margin-bottom:4px">Monthly activity (encounters / submissions)</div>
             <div class="chips">
-              {% for month, count in m.monthly.items() %}
-              <span class="chip">{{ month_label(month) }}: {{ count }}</span>
+              {% for month, vals in m.monthly.items() %}
+              <span class="chip">{{ month_label(month) }}: {{ vals.encounters }} enc / {{ vals.submissions }} sub</span>
               {% endfor %}
             </div>
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="8"><div class="empty">No CBV matched this name/phone.</div></td></tr>
+        <tr><td colspan="10"><div class="empty">No CBV matched this name/phone.</div></td></tr>
       {% endfor %}
       </tbody>
     </table>
