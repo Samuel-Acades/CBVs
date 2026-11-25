@@ -4,6 +4,7 @@ import csv
 import io
 import logging
 import time
+from urllib.parse import urlencode
 
 from fastapi import FastAPI, Form, Request, UploadFile, File
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response, PlainTextResponse
@@ -23,6 +24,11 @@ from . import (
     recommend,
     normalize,
 )
+import json
+import os
+import re
+import subprocess
+import sys
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("app")
@@ -397,7 +403,7 @@ def cbv_list(request: Request, month: str = "", q: str = "", low: int = 0, sort:
 
 
 @app.get("/cbv", response_class=HTMLResponse)
-def cbv_detail(request: Request, key: str, month: str = ""):
+def cbv_detail(request: Request, key: str, month: str = "", saved: int = 0):
     ds, err = load_ds(request)
     if ds is None:
         return error_page(request, err)
@@ -479,6 +485,7 @@ def cbv_detail(request: Request, key: str, month: str = ""):
             district=district,
             group=group,
             sat=sat,
+            saved=bool(saved),
             active_nav="cbvs",
         ),
     )
@@ -695,11 +702,17 @@ def rec_override(
     note: str = Form(""),
     month: str = Form(""),
     full: int = Form(0),
+    return_to: str = Form("recommendations"),
 ):
     if action in ("include", "exclude"):
         store.set_override(cbv_key, action, note)
     elif action == "clear":
         store.remove_override(cbv_key)
+
+    if return_to == "cbv":
+        params = urlencode({"key": cbv_key, "month": month, "saved": 1})
+        return RedirectResponse(f"/cbv?{params}", status_code=303)
+
     page = "/recommendations/full" if full else "/recommendations"
     return RedirectResponse(f"{page}?month={month}&saved=1", status_code=303)
 
@@ -766,6 +779,256 @@ def rec_export_xlsx(request: Request, month: str = ""):
         output.getvalue(),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="bundle_recommendations_{sel}.xlsx"'},
+    )
+
+
+# ------------------------------------------------------------------ Gemini recommendations
+GEMINI_SHORTLIST_JSON = config.DATA_DIR / "gemini_bundle_shortlist.json"
+GEMINI_SHORTLIST_MD = config.DATA_DIR / "gemini_bundle_shortlist.md"
+GEMINI_SCRIPT = config.BASE_DIR / "scripts" / "gemini_bundle_shortlist.py"
+
+
+def _load_gemini_shortlist():
+    path = GEMINI_SHORTLIST_JSON
+    if not path.exists():
+        return None, None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        mtime = path.stat().st_mtime
+        return data, mtime
+    except Exception as e:  # noqa: BLE001
+        log.warning("failed to read gemini shortlist: %s", e)
+        return None, None
+
+
+def _build_cbv_lookup(ds, records):
+    phone_for = _phone_by_key(records)
+    by_cbv = {}
+    for key in {e.cbv_key for e in ds.encounters} | {s.cbv_key for s in ds.submissions}:
+        monthly = {m: 0 for m in ds.months}
+        name = ""
+        district = ""
+        questions = 0
+        for e in ds.encounters:
+            if e.cbv_key != key:
+                continue
+            name = name or e.cbv
+            district = district or e.district
+            if e.month and e.month in monthly:
+                monthly[e.month] += 1
+        for s in ds.unique_submissions:
+            if s.cbv_key != key:
+                continue
+            name = name or s.cbv
+            district = district or s.district
+            if s.questions:
+                questions += 1
+        total = sum(monthly.values())
+        active = [m for m, c in monthly.items() if c > 0]
+        recent = ds.months[-3:]
+        recent_total = sum(monthly.get(m, 0) for m in recent)
+        by_cbv[key] = {
+            "key": key,
+            "name": name or key,
+            "district": district,
+            "phone": phone_for(key),
+            "monthly": monthly,
+            "total": total,
+            "months_active": len(active),
+            "recent_3m_total": recent_total,
+            "last_active": active[-1] if active else "",
+            "questions": questions,
+        }
+    return by_cbv
+
+
+def _gemini_decision(row, shortlist, ref_month):
+    if not row:
+        return None
+    recommended = shortlist.get("recommended", []) if shortlist else []
+    watchlist = shortlist.get("watchlist", []) if shortlist else []
+    key = row["key"]
+    rec_item = next((r for r in recommended if normalize.name_key(r.get("name", "")) == key), None)
+    watch_item = next((r for r in watchlist if normalize.name_key(r.get("name", "")) == key), None)
+
+    recent = row["recent_3m_total"]
+    total = row["total"]
+    months_active = row["months_active"]
+    last_active = row["last_active"]
+
+    if rec_item:
+        verdict = "Recommended"
+        badge = "green"
+        reason = rec_item.get("reason", "Included in Gemini shortlist.")
+    elif watch_item:
+        verdict = "Watchlist"
+        badge = "amber"
+        reason = watch_item.get("reason", "On Gemini watchlist.")
+    elif recent >= 10 and months_active >= 2:
+        verdict = "Should consider"
+        badge = "blue"
+        reason = f"Strong recent activity ({recent} in last 3 months across {months_active} active months) but not in current Gemini shortlist."
+    elif recent > 0:
+        verdict = "Not enough recent activity"
+        badge = "amber"
+        reason = f"Some recent activity ({recent} in last 3 months), but below the usual recommendation strength."
+    elif total > 0:
+        verdict = "Inactive recently"
+        badge = "red"
+        reason = f"No recent activity in last 3 months; last active {month_label(last_active) if last_active else 'unknown'}."
+    else:
+        verdict = "No data found"
+        badge = "gray"
+        reason = "No encounters/submissions found for this CBV."
+
+    return {
+        "verdict": verdict,
+        "badge": badge,
+        "reason": reason,
+        "in_shortlist": bool(rec_item),
+        "in_watchlist": bool(watch_item),
+        "ref_month": ref_month,
+    }
+
+
+@app.get("/gemini-recommendations", response_class=HTMLResponse)
+def gemini_recommendations(request: Request, generated: str = "", q: str = ""):
+    ds, err = load_ds(request)
+    if ds is None:
+        return error_page(request, err)
+
+    shortlist, generated_at = _load_gemini_shortlist()
+    cbv_rows = {r["key"]: r for r in analytics.per_cbv(ds)}
+    records, bundle_errors = load_bundles()
+    ref_month = default_month(ds)
+
+    proof_rows = []
+    watchlist_rows = []
+    excluded_rows = []
+    phone_for = _phone_by_key(records)
+    if shortlist:
+        for item in shortlist.get("recommended", []):
+            key = normalize.name_key(item.get("name", ""))
+            cbv = cbv_rows.get(key, {})
+            proof_rows.append({
+                **item,
+                "key": key,
+                "exists": bool(cbv),
+                "phone": phone_for(key),
+                "current_encounters": cbv.get("encounters", 0),
+                "current_all_time": cbv.get("all_time", item.get("total_encounters", 0)),
+                "district": item.get("district") or cbv.get("district", ""),
+            })
+        for item in shortlist.get("watchlist", []):
+            key = normalize.name_key(item.get("name", ""))
+            cbv = cbv_rows.get(key, {})
+            watchlist_rows.append({**item, "key": key, "exists": bool(cbv), "current_encounters": cbv.get("encounters", 0)})
+        for item in shortlist.get("excluded_notable", []):
+            key = normalize.name_key(item.get("name", ""))
+            cbv = cbv_rows.get(key, {})
+            excluded_rows.append({**item, "key": key, "exists": bool(cbv), "current_encounters": cbv.get("encounters", 0)})
+
+    lookup = _build_cbv_lookup(ds, records)
+    query = (q or "").strip()
+    query_norm = re.sub(r"[^0-9]", "", query)
+    matches = []
+    if query:
+        for row in lookup.values():
+            name_hit = query.lower() in row["name"].lower()
+            phone = re.sub(r"[^0-9]", "", row.get("phone", ""))
+            phone_hit = bool(query_norm) and (query_norm in phone or phone in query_norm and len(query_norm) >= 5)
+            if name_hit or phone_hit:
+                decision = _gemini_decision(row, shortlist, ref_month)
+                matches.append({**row, "decision": decision})
+        matches.sort(key=lambda r: (-r["recent_3m_total"], -r["total"], r["name"]))
+        matches = matches[:20]
+
+    generated_label = time.strftime("%Y-%m-%d %H:%M", time.localtime(generated_at)) if generated_at else ""
+
+    return templates.TemplateResponse(
+        request,
+        "gemini_recommendations.html",
+        ctx(
+            request,
+            ds,
+            shortlist=shortlist,
+            proof_rows=proof_rows,
+            watchlist_rows=watchlist_rows,
+            excluded_rows=excluded_rows,
+            generated=generated,
+            generated_label=generated_label,
+            ref_month=ref_month,
+            bundle_errors=bundle_errors,
+            has_api_key=bool(os.environ.get("GEMINI_API_KEY")),
+            q=query,
+            matches=matches,
+            active_nav="gemini-recommendations",
+        ),
+    )
+
+
+@app.post("/gemini-recommendations/generate")
+def gemini_recommendations_generate(request: Request):
+    if not os.environ.get("GEMINI_API_KEY"):
+        return RedirectResponse("/gemini-recommendations?generated=no_key", status_code=303)
+    if not GEMINI_SCRIPT.exists():
+        return RedirectResponse("/gemini-recommendations?generated=missing_script", status_code=303)
+    try:
+        result = subprocess.run(
+            [sys.executable, str(GEMINI_SCRIPT)],
+            cwd=str(config.BASE_DIR),
+            capture_output=True,
+            text=True,
+            timeout=180,
+            env=os.environ.copy(),
+        )
+        if result.returncode != 0:
+            log.warning("gemini shortlist generation failed: %s", result.stderr[-500:] if result.stderr else result.stdout[-500:])
+            return RedirectResponse("/gemini-recommendations?generated=error", status_code=303)
+    except Exception as e:  # noqa: BLE001
+        log.warning("gemini shortlist generation exception: %s", e)
+        return RedirectResponse("/gemini-recommendations?generated=error", status_code=303)
+    return RedirectResponse("/gemini-recommendations?generated=1", status_code=303)
+
+
+def _phone_by_key(records):
+    line_records = [r for r in records if r.extra.get("line")]
+    line_keys = {r.cbv_key for r in line_records}
+    def lookup(key):
+        matching = bundles_mod.matched_keys(key, line_keys)
+        rec = max((r for r in line_records if r.cbv_key in matching), key=lambda r: (r.month, r.cbv_key == key), default=None)
+        return rec.extra["line"] if rec else ""
+    return lookup
+
+
+@app.get("/gemini-recommendations/export.csv", response_class=PlainTextResponse)
+def gemini_recommendations_export_csv(request: Request):
+    shortlist, _ = _load_gemini_shortlist()
+    if not shortlist:
+        return PlainTextResponse("No Gemini shortlist found", status_code=404)
+    records, _ = load_bundles()
+    phone_for = _phone_by_key(records)
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["Rank", "CBV", "Phone number", "District", "Recent 3m", "Total encounters", "Last bundle", "Reason", "Signals"])
+    for r in shortlist.get("recommended", []):
+        key = normalize.name_key(r.get("name", ""))
+        signals = "; ".join(r.get("signals", []))
+        w.writerow([
+            r.get("rank", ""),
+            r.get("name", ""),
+            phone_for(key),
+            r.get("district", ""),
+            r.get("recent_3m_total", ""),
+            r.get("total_encounters", ""),
+            r.get("last_bundle_month") or "Never",
+            r.get("reason", ""),
+            signals,
+        ])
+    return Response(
+        buf.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=gemini_bundle_shortlist.csv"},
     )
 
 

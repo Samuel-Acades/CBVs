@@ -1,0 +1,182 @@
+﻿{% extends "base.html" %}
+{% block title %}Gemini Recommendation - ACADES CBV Dashboard{% endblock %}
+{% block page_title %}<h1>Gemini Recommendation</h1>{% endblock %}
+{% block content %}
+
+{% if generated == '1' %}<div class="banner banner-ok msg">Gemini shortlist generated.</div>{% endif %}
+{% if generated == 'error' %}<div class="banner banner-error msg">Gemini generation failed. Check server logs and GEMINI_API_KEY.</div>{% endif %}
+{% if generated == 'no_key' %}<div class="banner banner-error msg">GEMINI_API_KEY is missing in .env.</div>{% endif %}
+{% if generated == 'missing_script' %}<div class="banner banner-error msg">Generator script not found.</div>{% endif %}
+
+<div class="card" style="margin-bottom:14px">
+  <h2>Check a CBV complaint</h2>
+  <div class="sub">Search by CBV name or phone number to review their engagement across all months and get a recommendation decision.</div>
+  <form class="filters" method="get" action="/gemini-recommendations" style="margin-top:10px">
+    <div class="field" style="min-width:280px;flex:1">
+      <label>CBV name or phone number</label>
+      <input type="search" name="q" value="{{ q }}" placeholder="e.g. Fransis Phiri or 994214662">
+    </div>
+    <button class="btn" type="submit">Check CBV</button>
+    {% if q %}<a class="btn btn-ghost" href="/gemini-recommendations">Clear</a>{% endif %}
+  </form>
+
+  {% if q %}
+  <div class="sub" style="margin-top:10px">Results for ?{{ q }}?</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>CBV</th><th>Phone</th><th>District</th><th class="num">Recent 3m</th><th class="num">Total</th><th class="num">Months active</th><th>Last active</th><th>Decision</th></tr></thead>
+      <tbody>
+      {% for m in matches %}
+        <tr>
+          <td><a class="name-link" href="/cbv?key={{ m.key | urlencode }}&month={{ ref_month | urlencode }}">{{ m.name }}</a></td>
+          <td class="muted">{{ m.phone or '?' }}</td>
+          <td class="muted">{{ m.district or '?' }}</td>
+          <td class="num"><b>{{ m.recent_3m_total }}</b></td>
+          <td class="num">{{ m.total }}</td>
+          <td class="num">{{ m.months_active }}</td>
+          <td class="muted">{{ month_label(m.last_active) if m.last_active else '?' }}</td>
+          <td>
+            <div><span class="badge {{ m.decision.badge }}">{{ m.decision.verdict }}</span></div>
+            <div class="tiny muted" style="margin-top:4px">{{ m.decision.reason }}</div>
+          </td>
+        </tr>
+        <tr>
+          <td colspan="8" style="background:#fafafa">
+            <div class="tiny muted" style="margin-bottom:4px">Monthly encounters</div>
+            <div class="chips">
+              {% for month, count in m.monthly.items() %}
+              <span class="chip">{{ month_label(month) }}: {{ count }}</span>
+              {% endfor %}
+            </div>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8"><div class="empty">No CBV matched this name/phone.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-bottom:14px">
+  <div class="copy-row" style="justify-content:space-between;align-items:flex-start;gap:12px">
+    <div>
+      <h2>AI-assisted bundle shortlist</h2>
+      <div class="sub">
+        Uses Gemini with live dashboard data (encounters, submissions, bundle history, merges) to recommend high performers and promising recent newcomers.
+        Max 35 preferred, hard cap 40. Verify before distribution.
+      </div>
+      <div class="tiny muted" style="margin-top:6px">
+        {% if generated_label %}Last generated: {{ generated_label }}{% else %}No generated shortlist found yet.{% endif %}
+        {% if has_api_key %} · GEMINI_API_KEY detected{% else %} · GEMINI_API_KEY missing{% endif %}
+      </div>
+    </div>
+    <div class="copy-row" style="gap:8px">
+      {% if shortlist %}
+      <a class="btn btn-ghost" href="/gemini-recommendations/export.csv">Download CSV</a>
+      {% endif %}
+      <form method="post" action="/gemini-recommendations/generate" class="inline">
+        <button class="btn" type="submit">Generate / Refresh with Gemini</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if shortlist %}
+<div class="grid kpis">
+  <div class="card kpi accent"><div class="label">Recommended</div><div class="value">{{ shortlist.recommended|length }}</div><div class="foot">target ≤ 35</div></div>
+  <div class="card kpi"><div class="label">Watchlist</div><div class="value">{{ shortlist.watchlist|length if shortlist.watchlist else 0 }}</div><div class="foot">needs more evidence</div></div>
+  <div class="card kpi amber"><div class="label">Notable exclusions</div><div class="value">{{ shortlist.excluded_notable|length if shortlist.excluded_notable else 0 }}</div><div class="foot">reviewed by Gemini</div></div>
+  <div class="card kpi"><div class="label">Ref month</div><div class="value" style="font-size:22px">{{ ref_month }}</div><div class="foot">dashboard default month</div></div>
+</div>
+
+<div class="card" style="margin-top:14px">
+  <h2>Why these CBVs</h2>
+  <div class="sub">{{ shortlist.summary }}</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>CBV</th><th>Phone</th><th>District</th><th class="num">Recent 3m</th><th class="num">Total</th><th class="num">Current month</th><th>Last bundle</th><th>Signals / proof</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in proof_rows %}
+        <tr>
+          <td class="rank">{{ r.rank }}</td>
+          <td>
+            {% if r.exists %}
+            <a class="name-link" href="/cbv?key={{ r.key | urlencode }}&month={{ ref_month | urlencode }}">{{ r.name }}</a>
+            {% else %}{{ r.name }}{% endif %}
+          </td>
+          <td class="muted">{{ r.phone or '?' }}</td>
+          <td class="muted">{{ r.district or '—' }}</td>
+          <td class="num"><b>{{ r.recent_3m_total }}</b></td>
+          <td class="num">{{ r.total_encounters }}</td>
+          <td class="num muted">{{ r.current_encounters }}</td>
+          <td class="muted">{{ month_label(r.last_bundle_month) if r.last_bundle_month else 'Never' }}</td>
+          <td>
+            <div style="margin-bottom:4px">{{ r.reason }}</div>
+            <div class="chips">
+              {% for s in r.signals or [] %}<span class="chip">{{ s }}</span>{% endfor %}
+              {% if not r.exists %}<span class="chip" style="border-color:#f3c4c4;color:#a33">Name not matched in current data</span>{% endif %}
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if watchlist_rows %}
+<div class="card" style="margin-top:14px">
+  <h2>Watchlist</h2>
+  <div class="sub">Promising or borderline CBVs to monitor before next bundle round.</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>CBV</th><th>District</th><th class="num">Current month</th><th>Reason</th></tr></thead>
+    <tbody>
+    {% for w in watchlist_rows %}
+      <tr>
+        <td>{% if w.exists %}<a class="name-link" href="/cbv?key={{ w.key | urlencode }}&month={{ ref_month | urlencode }}">{{ w.name }}</a>{% else %}{{ w.name }}{% endif %}</td>
+        <td class="muted">{{ w.district or '—' }}</td>
+        <td class="num muted">{{ w.current_encounters }}</td>
+        <td>{{ w.reason }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endif %}
+
+{% if excluded_rows %}
+<div class="card" style="margin-top:14px">
+  <h2>Notable exclusions</h2>
+  <div class="sub">High/known CBVs not recommended now, with reason.</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>CBV</th><th class="num">Current month</th><th>Reason</th></tr></thead>
+    <tbody>
+    {% for e in excluded_rows %}
+      <tr>
+        <td>{% if e.exists %}<a class="name-link" href="/cbv?key={{ e.key | urlencode }}&month={{ ref_month | urlencode }}">{{ e.name }}</a>{% else %}{{ e.name }}{% endif %}</td>
+        <td class="num muted">{{ e.current_encounters }}</td>
+        <td>{{ e.reason }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endif %}
+
+{% if bundle_errors %}
+<details class="data-notes"><summary>Bundle file notes ({{ bundle_errors|length }})</summary><ul>{% for e in bundle_errors %}<li>{{ e }}</li>{% endfor %}</ul></details>
+{% endif %}
+
+{% else %}
+<div class="card">
+  <div class="empty">No Gemini shortlist yet. Click “Generate / Refresh with Gemini”. The button runs `scripts/gemini_bundle_shortlist.py` using `GEMINI_API_KEY` from `.env`.</div>
+</div>
+{% endif %}
+
+{% endblock %}

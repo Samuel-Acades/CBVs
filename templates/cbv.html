@@ -4,6 +4,34 @@
 <h1><a href="/cbvs" class="muted" style="font-weight:400">CBVs</a> / {{ name }}</h1>
 {% endblock %}
 {% block content %}
+{% if saved %}<div class="banner banner-ok msg">Saved your decision.</div>{% endif %}
+
+<div class="card" style="margin-top:14px">
+  <div class="copy-row" style="justify-content:space-between;align-items:flex-start;gap:12px">
+    <div>
+      <h2>Recommendation for {{ month_label(month) }}</h2>
+      <div class="sub">Current recommendation and your saved override for this CBV</div>
+    </div>
+    {% if status %}
+      {% if status.status in ('received', 'no_report') %}
+        <span class="badge blue">Need review</span>
+      {% elif status.status == 'eligible' %}
+        <span class="badge green">Recommended</span>
+      {% elif status.status == 'excluded' %}
+        <span class="badge red">Excluded</span>
+      {% elif status.status == 'forced' %}
+        <span class="badge green">Forced in</span>
+      {% else %}
+        <span class="badge gray">{{ status.status }}</span>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% if status %}
+    {% with r=status, return_to='cbv' %}
+      {% include "_decision.html" %}
+    {% endwith %}
+  {% endif %}
+</div>
 
 <div class="grid kpis">
   <div class="card kpi accent">

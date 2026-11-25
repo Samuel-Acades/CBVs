@@ -1,0 +1,504 @@
+{
+  "summary": "Shortlist of 34 CBVs highly recommended for bundle distribution. The selection prioritizes strong recent performance (activity in 2026-10 or 2026-11), sustained activity over multiple months, and promising newcomers with good recent engagement. CBVs with no activity in the last two months (2026-10 and 2026-11) were generally excluded from recommendations, even if they had activity in 2026-09.",
+  "recommended": [
+    {
+      "rank": 1,
+      "name": "Fransis Phiri",
+      "district": "Kasungu",
+      "reason": "Strongest performer with consistent high activity across multiple months, including the most recent month.",
+      "signals": [
+        "Strong performance over months",
+        "Recent consistency/activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 140,
+      "total_encounters": 140
+    },
+    {
+      "rank": 2,
+      "name": "Gerald Zimba",
+      "district": "Kasungu",
+      "reason": "Very strong performance with consistent activity across multiple months, including the most recent month.",
+      "signals": [
+        "Strong performance over months",
+        "Recent consistency/activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 64,
+      "total_encounters": 64
+    },
+    {
+      "rank": 3,
+      "name": "Aubrey Nkhoma",
+      "district": "Kasungu",
+      "reason": "Strong sustained performance over several months, showing consistent activity, including the most recent month.",
+      "signals": [
+        "Strong performance over months",
+        "Recent consistency/activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": "2026-09",
+      "recent_3m_total": 60,
+      "total_encounters": 62
+    },
+    {
+      "rank": 4,
+      "name": "MACHILIKA ORTON",
+      "district": "Kasungu",
+      "reason": "Strong performance with consistent activity across multiple months, including the most recent month.",
+      "signals": [
+        "Strong performance over months",
+        "Recent consistency/activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": "2026-09",
+      "recent_3m_total": 63,
+      "total_encounters": 63
+    },
+    {
+      "rank": 5,
+      "name": "CHIFUNIRO MZUNGA",
+      "district": "Kasungu",
+      "reason": "Good sustained performance over several months, active recently, and shows engagement through questions asked.",
+      "signals": [
+        "Strong performance over months",
+        "Recent consistency/activity",
+        "Active in 2026-11",
+        "Engaged"
+      ],
+      "last_bundle_month": "2026-09",
+      "recent_3m_total": 48,
+      "total_encounters": 68
+    },
+    {
+      "rank": 6,
+      "name": "Zione Wilima",
+      "district": "Kasungu",
+      "reason": "Good recent activity and consistent performance, active in the previous month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 57,
+      "total_encounters": 57
+    },
+    {
+      "rank": 7,
+      "name": "Elephat Mustata",
+      "district": "Kasungu",
+      "reason": "Promising newcomer with good activity in their first month, showing strong recent engagement.",
+      "signals": [
+        "Promising newcomer",
+        "Good recent activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 25,
+      "total_encounters": 25
+    },
+    {
+      "rank": 8,
+      "name": "Inosent Chirwa",
+      "district": "Kasungu",
+      "reason": "Consistent activity over multiple months, including the most recent month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 21,
+      "total_encounters": 21
+    },
+    {
+      "rank": 9,
+      "name": "Precious Mwale",
+      "district": "Mchinji",
+      "reason": "Promising newcomer with good activity in their first month, showing strong recent engagement.",
+      "signals": [
+        "Promising newcomer",
+        "Good recent activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 18,
+      "total_encounters": 18
+    },
+    {
+      "rank": 10,
+      "name": "Chikondi Beshani",
+      "district": "Lilongwe",
+      "reason": "Sustained activity over several months, active recently, and shows engagement through questions asked.",
+      "signals": [
+        "Strong performance over months",
+        "Recent consistency/activity",
+        "Active in 2026-11",
+        "Engaged"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 17,
+      "total_encounters": 18
+    },
+    {
+      "rank": 11,
+      "name": "Rodrick Pesulani",
+      "district": "Mchinji",
+      "reason": "Sustained and consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Strong performance over months",
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 22,
+      "total_encounters": 23
+    },
+    {
+      "rank": 12,
+      "name": "Oliver Innocent",
+      "district": "Mchinji",
+      "reason": "Promising newcomer with good activity in their first month, active in the previous month.",
+      "signals": [
+        "Promising newcomer",
+        "Good recent activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 19,
+      "total_encounters": 19
+    },
+    {
+      "rank": 13,
+      "name": "Sosten Banda",
+      "district": "Kasungu",
+      "reason": "Consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": "2026-09",
+      "recent_3m_total": 25,
+      "total_encounters": 25
+    },
+    {
+      "rank": 14,
+      "name": "Wagie",
+      "district": "Kasungu",
+      "reason": "Promising newcomer with recent activity over two months, including the most recent month.",
+      "signals": [
+        "Promising newcomer",
+        "Recent consistency/activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 11,
+      "total_encounters": 11
+    },
+    {
+      "rank": 15,
+      "name": "Jalafu Kanyamula",
+      "district": "Lilongwe",
+      "reason": "Consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": "2026-07",
+      "recent_3m_total": 20,
+      "total_encounters": 20
+    },
+    {
+      "rank": 16,
+      "name": "Esau Faliot",
+      "district": "Ntchisi",
+      "reason": "Sustained and consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Strong performance over months",
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": "2026-09",
+      "recent_3m_total": 16,
+      "total_encounters": 18
+    },
+    {
+      "rank": 17,
+      "name": "Alpha Chiwede",
+      "district": "Kasungu",
+      "reason": "Sustained activity over multiple months, including the most recent month.",
+      "signals": [
+        "Strong performance over months",
+        "Recent consistency/activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": "2026-09",
+      "recent_3m_total": 10,
+      "total_encounters": 10
+    },
+    {
+      "rank": 18,
+      "name": "Malizani Phili",
+      "district": "Kasungu",
+      "reason": "Consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 14,
+      "total_encounters": 14
+    },
+    {
+      "rank": 19,
+      "name": "Yvone Lufeyo",
+      "district": "Kasungu",
+      "reason": "Consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 10,
+      "total_encounters": 10
+    },
+    {
+      "rank": 20,
+      "name": "Clement Mafiken",
+      "district": "Lilongwe",
+      "reason": "Consistent activity over multiple months, including the most recent month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 7,
+      "total_encounters": 7
+    },
+    {
+      "rank": 21,
+      "name": "Kelvin Nyambose",
+      "district": "Mchinji",
+      "reason": "Sustained and consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Strong performance over months",
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": "2026-09",
+      "recent_3m_total": 6,
+      "total_encounters": 7
+    },
+    {
+      "rank": 22,
+      "name": "Donex Ching, Oma",
+      "district": "Kasungu",
+      "reason": "Newcomer with recent activity over two months, including the most recent month.",
+      "signals": [
+        "Promising newcomer",
+        "Recent consistency/activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 5,
+      "total_encounters": 5
+    },
+    {
+      "rank": 23,
+      "name": "Kumbukani Sadrack",
+      "district": "Kasungu",
+      "reason": "Consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": "2026-09",
+      "recent_3m_total": 7,
+      "total_encounters": 7
+    },
+    {
+      "rank": 24,
+      "name": "Josam Gladson",
+      "district": "Lilongwe",
+      "reason": "Consistent activity over multiple months, including the most recent month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 3,
+      "total_encounters": 3
+    },
+    {
+      "rank": 25,
+      "name": "ENITA NYIKA",
+      "district": "Mchinji",
+      "reason": "Consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 6,
+      "total_encounters": 6
+    },
+    {
+      "rank": 26,
+      "name": "Evance Mchere",
+      "district": "Ntchisi",
+      "reason": "Consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 6,
+      "total_encounters": 6
+    },
+    {
+      "rank": 27,
+      "name": "Thomas Yosofat Chilomba",
+      "district": "Lilongwe",
+      "reason": "Consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": "2026-09",
+      "recent_3m_total": 6,
+      "total_encounters": 6
+    },
+    {
+      "rank": 28,
+      "name": "Nephtaly Patrick Banda",
+      "district": "Mchinji",
+      "reason": "Consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 5,
+      "total_encounters": 5
+    },
+    {
+      "rank": 29,
+      "name": "Caloreen Isaac",
+      "district": "Ntchisi",
+      "reason": "Newcomer with recent activity in their first month, active in the previous month.",
+      "signals": [
+        "Promising newcomer",
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 7,
+      "total_encounters": 7
+    },
+    {
+      "rank": 30,
+      "name": "Lonica Chizumba",
+      "district": "Lilongwe",
+      "reason": "Consistent activity over multiple months, active in the previous month.",
+      "signals": [
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": "2026-09",
+      "recent_3m_total": 4,
+      "total_encounters": 4
+    },
+    {
+      "rank": 31,
+      "name": "Gerald Mwafulirwa",
+      "district": "Kasungu",
+      "reason": "Newcomer with recent activity in their first month, active in the previous month.",
+      "signals": [
+        "Promising newcomer",
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 5,
+      "total_encounters": 5
+    },
+    {
+      "rank": 32,
+      "name": "Tamanda",
+      "district": "Kasungu",
+      "reason": "Newcomer with recent activity in their first month, active in the most recent month.",
+      "signals": [
+        "Promising newcomer",
+        "Recent consistency/activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 3,
+      "total_encounters": 3
+    },
+    {
+      "rank": 33,
+      "name": "Tamanda Chinkhombe",
+      "district": "Kasungu",
+      "reason": "Newcomer with recent activity in their first month, active in the most recent month.",
+      "signals": [
+        "Promising newcomer",
+        "Recent consistency/activity",
+        "Active in 2026-11"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 3,
+      "total_encounters": 3
+    },
+    {
+      "rank": 34,
+      "name": "Francis Sumbulanga",
+      "district": "Kasungu",
+      "reason": "Newcomer with recent activity in their first month, active in the previous month.",
+      "signals": [
+        "Promising newcomer",
+        "Recent consistency/activity",
+        "Active in 2026-10"
+      ],
+      "last_bundle_month": null,
+      "recent_3m_total": 3,
+      "total_encounters": 3
+    }
+  ],
+  "watchlist": [
+    {
+      "name": "Marizani",
+      "district": "Kasungu",
+      "reason": "Newcomer with very low activity (2 encounters) but active in 2026-10. Needs to show more engagement to be recommended."
+    },
+    {
+      "name": "Susan Banda",
+      "district": "Kasungu",
+      "reason": "Very low recent activity (1 encounter) but active in 2026-10. Needs to significantly increase activity to be recommended."
+    },
+    {
+      "name": "Amon Mtemuza",
+      "district": "Mchinji",
+      "reason": "Newcomer with very low activity (1 encounter) but active in 2026-10. Needs to show more engagement to be recommended."
+    }
+  ],
+  "excluded_notable": [
+    {
+      "name": "Elephat Mustafa",
+      "reason": "High activity in 2026-09 (46 encounters), but no activity in 2026-10 or 2026-11, indicating a significant drop in recent consistency."
+    },
+    {
+      "name": "Chimwemwe Chilobwe",
+      "reason": "Good activity in 2026-09 (21 encounters), but no activity in 2026-10 or 2026-11, indicating a drop in recent consistency."
+    },
+    {
+      "name": "Sandless Kalele",
+      "reason": "Good activity in 2026-09 (16 encounters), but no activity in 2026-10 or 2026-11, indicating a drop in recent consistency."
+    },
+    {
+      "name": "Sandikonda Rodreck",
+      "reason": "Good activity in 2026-09 (14 encounters), but no activity in 2026-10 or 2026-11, indicating a drop in recent consistency."
+    }
+  ]
+}
